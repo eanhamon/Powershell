@@ -2,15 +2,15 @@
 
 $user = "eharmon"
 $group = "Tetraaccounting"
-$folderPath = "C:\Tetra"
+$directoryPath = "C:\Tetra"
 $Password = ConvertTo-SecureString "password" -AsPlainText -Force
-$acl = Get-Acl $folderPath
+$acl = Get-Acl $directoryPath
 $WallpaperURL = "https://www.alphr.com/wp-content/uploads/2022/06/9-6-1024x576.png"
 $LockscreenUrl = "https://www.alphr.com/wp-content/uploads/2022/06/9-6-1024x576.png"
 $ImageDestinationFolder = "c:\temp"
 $WallpaperDestinationFile = "$ImageDestinationFolder\wallpaper.png"
 $LockScreenDestinationFile = "$ImageDestinationFolder\LockScreen.png"
-$directoryPath = "C:\Tetra"
+
 
 
 #user config
@@ -56,9 +56,9 @@ if ($existingRule) {
         $group, "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow"
     )
     $acl.SetAccessRule($rule)
-    Set-Acl $folderPath $acl
+    Set-Acl $directoryPath $acl
     
-    Write-Host "FullControl permissions granted to $group on $folderPath."
+    Write-Host "FullControl permissions granted to $group on $directoryPath."
 }
 
 
