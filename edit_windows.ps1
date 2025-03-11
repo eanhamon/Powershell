@@ -59,11 +59,11 @@ if ($existingRule) {
 }
 
 
-#firewall rule to block icmp
+#firewall rule to block icmp https://learn.microsoft.com/en-us/powershell/module/netsecurity/new-netfirewallrule?view=windowsserver2025-ps
 New-NetFirewallRule -DisplayName "Block ICMPv4" -Direction Inbound -Protocol ICMPv4 -Action Block
 
 
-# sets password policy
+# sets password policy https://stackoverflow.com/questions/23260656/modify-local-security-policy-using-powershell
 secedit /export /cfg c:\secpol.cfg
 (gc C:\secpol.cfg).replace("MaximumPasswordAge = 42", "MaximumPasswordAge = 60") | Out-File C:\secpol.cfg
 (gc C:\secpol.cfg).replace("PasswordHistorySize = 0", "PasswordHistorySize = 24") | Out-File C:\secpol.cfg
@@ -84,14 +84,14 @@ mkdir $ImageDestinationFolder -erroraction silentlycontinue
 Start-BitsTransfer -Source $WallpaperURL -Destination "$WallpaperDestinationFile"
 Start-BitsTransfer -Source $LockscreenUrl -Destination "$LockScreenDestinationFile"
 
-
+# https://powershellfaqs.com/change-wallpaper-with-powershell/
 function Set-Wallpaper {
     param (
         [string]$imagePath,
         [int]$style
     )
 
-    # https://powershellfaqs.com/change-wallpaper-with-powershell/
+    
     $SPI_SETDESKWALLPAPER = 0x0014
     $SPIF_UPDATEINIFILE = 0x01
     $SPIF_SENDCHANGE = 0x02
@@ -114,7 +114,7 @@ Set-Wallpaper -imagePath $WallpaperDestinationFile -style 0  # 0 for the default
 $error.clear()
 
 
-# modify desktop theme
+# modify desktop theme https://stackoverflow.com/questions/32045681/windows-10-apply-theme-programmatically
 
 Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize -Name AppsUseLightTheme -Value 0 -Type Dword -Force
 
