@@ -30,7 +30,10 @@ if (Get-LocalGroup -Name $group -ErrorAction SilentlyContinue) {
     Write-Host "Group $group created successfully."
 }
 
-
+if (Get-LocalGroupMember -Group $group | Where-Object { $_.Name -eq $user }) {
+    Write-Host "User $user is already in $group. Continuing with the script..."
+} else{
+Add-LocalGroupMember -Group $group -Member $user}
 #folder config
 
 
