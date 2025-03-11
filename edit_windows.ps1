@@ -1,0 +1,123 @@
+#Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process
+
+$user = "eharmon"
+$group = "Tetraaccounting"
+$folderPath = "C:\Tetra"
+$Password = ConvertTo-SecureString "password" -AsPlainText -Force
+$acl = Get-Acl $folderPath
+$WallpaperURL = "https://www.alphr.com/wp-content/uploads/2022/06/9-6-1024x576.png"
+$LockscreenUrl = "https://www.alphr.com/wp-content/uploads/2022/06/9-6-1024x576.png"
+$ImageDestinationFolder = "c:\temp"
+$WallpaperDestinationFile = "$ImageDestinationFolder\wallpaper.png"
+$LockScreenDestinationFile = "$ImageDestinationFolder\LockScreen.png"
+$directoryPath = "C:\Tetra"
+
+
+#user config
+if (Get-LocalUser -Name $user -ErrorAction SilentlyContinue) {
+    Write-Host "User $user already exists. Continuing with the script..."
+} else {
+    $Password = ConvertTo-SecureString "password" -AsPlainText -Force
+    New-LocalUser -Name $user -FullName "Ean Harmon" -Password $Password
+    Write-Host "User $user created successfully."
+}
+
+
+if (Get-LocalGroup -Name $group -ErrorAction SilentlyContinue) {
+    Write-Host "Group $group already exists. Continuing with the script..."
+} else {
+    New-LocalGroup -Name $group -Description "Tetra Shillings Accounting Group"
+    Write-Host "Group $group created successfully."
+}
+
+
+#folder config
+
+
+if (Test-Path -Path $directoryPath) {
+    Write-Host "Directory $directoryPath exists."
+} else {
+    Write-Host "Directory $directoryPath does not exist."
+}
+
+$existingRule = $acl.Access | Where-Object {
+    $_.IdentityReference -eq $group -and $_.FileSystemRights -eq "FullControl" -and $_.AccessControlType -eq "Allow"
+}
+
+
+# checks if folder has permissions
+if ($existingRule) {
+    Write-Host "The group $group already has FullControl permissions. Continuing..."
+} else {
+    $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+        $group, "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow"
+    )
+    $acl.SetAccessRule($rule)
+    Set-Acl $folderPath $acl
+    
+    Write-Host "FullControl permissions granted to $group on $folderPath."
+}
+
+
+#firewall rule to block icmp
+New-NetFirewallRule -DisplayName "Block ICMPv4" -Direction Inbound -Protocol ICMPv4 -Action Block
+
+
+# sets password policy
+secedit /export /cfg c:\secpol.cfg
+(gc C:\secpol.cfg).replace("MaximumPasswordAge = 42", "MaximumPasswordAge = 60") | Out-File C:\secpol.cfg
+(gc C:\secpol.cfg).replace("PasswordHistorySize = 0", "PasswordHistorySize = 24") | Out-File C:\secpol.cfg
+(gc C:\secpol.cfg).replace("MinimumPasswordLength = 0", "MinimumPasswordLength = 12") | Out-File C:\secpol.cfg
+(gc C:\secpol.cfg).replace("PasswordComplexity = 0", "PasswordComplexity = 1") | Out-File C:\secpol.cfg
+secedit /configure /db c:\windows\security\local.sdb /cfg c:\secpol.cfg /areas SECURITYPOLICY
+rm -force c:\secpol.cfg -confirm:$false
+
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "PasswordHistorySize" -Value 24
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "MinimumPasswordLength" -Value 12
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "PasswordComplexity" -Value 1
+
+gpupdate /force
+
+# modify desktop background
+
+mkdir $ImageDestinationFolder -erroraction silentlycontinue
+Start-BitsTransfer -Source $WallpaperURL -Destination "$WallpaperDestinationFile"
+Start-BitsTransfer -Source $LockscreenUrl -Destination "$LockScreenDestinationFile"
+
+
+function Set-Wallpaper {
+    param (
+        [string]$imagePath,
+        [int]$style
+    )
+
+    # https://powershellfaqs.com/change-wallpaper-with-powershell/
+    $SPI_SETDESKWALLPAPER = 0x0014
+    $SPIF_UPDATEINIFILE = 0x01
+    $SPIF_SENDCHANGE = 0x02
+
+    Add-Type @"
+        using System;
+        using System.Runtime.InteropServices;
+        public class Wallpaper {
+            [DllImport("user32.dll", CharSet = CharSet.Auto)]
+            public static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
+        }
+"@
+
+    [Wallpaper]::SystemParametersInfo($SPI_SETDESKWALLPAPER, 0, $imagePath, $SPIF_UPDATEINIFILE -bor $SPIF_SENDCHANGE)
+}
+
+
+
+Set-Wallpaper -imagePath $WallpaperDestinationFile -style 0  # 0 for the default wallpaper style
+$error.clear()
+
+
+# modify desktop theme
+
+Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize -Name AppsUseLightTheme -Value 0 -Type Dword -Force
+
+
+#rename pc
+Rename-Computer -NewName "$user-PC" -Force
