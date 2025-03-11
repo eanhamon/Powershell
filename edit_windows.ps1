@@ -12,7 +12,6 @@ $WallpaperDestinationFile = "$ImageDestinationFolder\wallpaper.png"
 $LockScreenDestinationFile = "$ImageDestinationFolder\LockScreen.png"
 
 
-
 #user config
 if (Get-LocalUser -Name $user -ErrorAction SilentlyContinue) {
     Write-Host "User $user already exists. Continuing with the script..."
@@ -63,7 +62,9 @@ if ($existingRule) {
 
 
 #firewall rule to block icmp https://learn.microsoft.com/en-us/powershell/module/netsecurity/new-netfirewallrule?view=windowsserver2025-ps
-New-NetFirewallRule -DisplayName "Block ICMPv4" -Direction Inbound -Protocol ICMPv4 -Action Block
+if (Get-NetFirewallRule -DisplayName "Block ICMPv4"){
+Write-Host "firewall rule Block ICMPv4 already exists"} else{
+New-NetFirewallRule -DisplayName "Block ICMPv4" -Direction Inbound -Protocol ICMPv4 -Action Block}
 
 
 # sets password policy https://stackoverflow.com/questions/23260656/modify-local-security-policy-using-powershell
