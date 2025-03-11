@@ -35,12 +35,20 @@ if (Get-LocalGroupMember -Group $group | Where-Object { $_.Name -eq $user }) {
 Add-LocalGroupMember -Group $group -Member $user}
 #folder config
 
-
-if (Test-Path -Path $directoryPath) {
-    Write-Host "Directory $directoryPath exists."
-} else {
-    Write-Host "Directory $directoryPath does not exist."
+$Parameters = @{
+    Name = 'Tetra'
+    Path = 'C:\Tetra'
+    ChangeAccess = 'eharmon\tetraaccounting'
+    FullAccess = 'Administrators'
 }
+if(Get-SmbShare -Name Tetra)
+{
+Write-Host "Tetra Share already exists" }else 
+{
+
+New-SmbShare @Parameters
+}
+
 
 $existingRule = $acl.Access | Where-Object {
     $_.IdentityReference -eq $group -and $_.FileSystemRights -eq "FullControl" -and $_.AccessControlType -eq "Allow"
