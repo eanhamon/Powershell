@@ -41,12 +41,38 @@ $Parameters = @{
     ChangeAccess = 'eharmon\tetraaccounting'
     FullAccess = 'Administrators'
 }
-if(Get-SmbShare -Name Tetra)
-{
-Write-Host "Tetra Share already exists" }else 
-{
 
-New-SmbShare @Parameters
+
+if (Get-SmbShare -Name Tetra) {
+    Write-Host "Tetra Share already exists"
+
+    $currentAccess = Get-SmbShareAccess -Name Tetra | Where-Object { $_.AccountName -eq 'eharmon\tetraaccounting' }
+
+    # If 'tetraaccounting' has access, check if it's read/write (Change) access
+    if ($currentAccess) {
+        if ($currentAccess.AccessRight -ne 'Change') {
+            # Remove the existing 'tetraaccounting' access
+            Set-SmbShareAccess -Name Tetra -AccountName 'eharmon\tetraaccounting' -AccessRight 'None' -Force
+
+            # Add read/write (Change) permissions
+            Set-SmbShareAccess -Name Tetra -AccountName 'eharmon\tetraaccounting' -AccessRight 'Change' -Force
+            Write-Host "Updated access for 'eharmon\tetraaccounting' to read/write (Change)."
+        } else {
+            Write-Host "'eharmon\tetraaccounting' already has read/write access."
+        }
+    } else {
+        Write-Host "'eharmon\tetraaccounting' does not have any access yet."
+        Set-SmbShareAccess -Name Tetra -AccountName 'eharmon\tetraaccounting' -AccessRight 'Change' -Force
+        Write-Host "Granted read/write access to 'eharmon\tetraaccounting'."
+    }
+
+    # Verify the updated permissions
+    Get-SmbShareAccess Tetra
+} else {
+    Write-Host "Tetra Share does not exist. Creating share..."
+
+    # Create the share if it doesn't exist
+    New-SmbShare @Parameters
 }
 
 
